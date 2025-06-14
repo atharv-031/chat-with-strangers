@@ -12,11 +12,24 @@ const io = new Server(server, {
   cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
+// Security middleware
 app.use(helmet());
 app.use(xssClean());
 app.use(rateLimit({ windowMs: 60 * 1000, max: 100 }));
-app.use(express.static(path.join(__dirname, '../client/public')));
 
+// Serve React build folder (for production)
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+app.get('/online-users', (req, res) => {
+  res.json({ count: onlineUsers });
+});
+
+// Serve React app for any other route
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build/index.html'));
+});
+
+// WebSocket + matchmaking logic
 let onlineUsers = 0;
 const queue = [];
 
@@ -97,11 +110,7 @@ io.on('connection', (socket) => {
   });
 });
 
-app.get('/online-users', (req, res) => {
-  res.json({ count: onlineUsers });
-});
-
+// Start server on port 3000
 server.listen(3000, () => {
   console.log('✅ Server running on http://localhost:3000');
 });
-
